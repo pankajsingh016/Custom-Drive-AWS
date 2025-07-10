@@ -1,12 +1,17 @@
-const express = require('express');
+import express from "express";
+
+import {
+  uploadFile,
+  listFiles,
+  deleteFile,
+} from "../controllers/fileController.js";
+import upload from "../middlewares/multer.js";
+import { verifyToken } from "../middlewares/auth.js";
+
 const router = express.Router();
-const upload = require('../middlewares/multer');
-const controller = require('../controllers/fileController');
-const {verifyToken} = require('../middlewares/auth');
 
+router.post("/upload", verifyToken, upload.single("file"), uploadFile);
+router.get("/files", verifyToken, listFiles);
+router.delete("/files/:id", verifyToken, deleteFile);
 
-router.post('/upload',verifyToken, upload.single('file'),controller.uploadFile);
-router.get('/files',verifyToken, controller.listFiles);
-router.delete('/files/:id',verifyToken, controller.deleteFile);
-
-module.exports = router;
+export default router;

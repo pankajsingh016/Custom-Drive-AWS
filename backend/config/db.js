@@ -1,20 +1,29 @@
-const sqlite3 = require("sqlite3").verbose();
+import sqlite3 from "sqlite3";
 
-const db = new sqlite3.Database("./data/db.sqlite");
+import path from "path";
 
-db.seralize(() => {
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const dbPath = path.join(__dirname, "data", "db.sqlite");
+
+const db = new sqlite3.Database(dbPath);
+
+db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUIE,
+    email TEXT UNIQUE,
     password TEXT)`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS filies (
+  db.run(`CREATE TABLE IF NOT EXISTS files (
    id INTEGER PRIMARY KEY AUTOINCREMENT,
    filename TEXT,
    s3_key TEXT,
    user_id INTEGER,
-   uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP 
-   FOREGIN KEY (user_id) REFERENCES users(id))`);
+   uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
+   FOREIGN KEY (user_id) REFERENCES users(id))`);
 });
 
-module.exports = db;
+export default { db };

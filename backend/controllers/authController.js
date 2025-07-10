@@ -1,13 +1,12 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const User = require("../models/userModel");
-
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import {createUser, findByEmail} from "../models/userModel.js"
 
 async function register(req, res) {
   const { email, password } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
   try {
-    const id = await User.createUser(email, hashedPassword);
+    const id = await createUser(email, hashedPassword);
     res.json({ id, email });
   } catch (err) {
     res.status(500).json({ error: "User exists or DB erro" });
@@ -17,7 +16,7 @@ async function register(req, res) {
 
 async function login(req, res) {
   const { email, password } = req.body;
-  const user = await User.findByEmail(email);
+  const user = await findByEmail(email);
   if (!user) return res.status(400).json({ error: "Invalid Credentials" });
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) {
@@ -29,4 +28,4 @@ async function login(req, res) {
   res.json({ token });
 }
 
-module.exports = {register, login};
+export {register, login};

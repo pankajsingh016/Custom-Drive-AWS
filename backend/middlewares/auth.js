@@ -1,7 +1,8 @@
-require('dotenv').config();
-const jwt = require("jsonwebtoken");
+import dotenv from 'dotenv';
+dotenv.config();
+import jwt from "jsonwebtoken";
 
-exports.verifyToken = (req,res,next)=>{
+function verifyToken (req,res,next){
     const token = req.headers['authorization'];
     if(!token) return res.status(401).json({'error':'Token Missing'});
 
@@ -11,3 +12,5 @@ exports.verifyToken = (req,res,next)=>{
         next();
     });
 };
+
+export { verifyToken };

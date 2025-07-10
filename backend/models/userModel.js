@@ -1,4 +1,4 @@
-const db = require("../config/db");
+import db from "../config/db.js";
 
 // creating user and inserting it into the db
 function createUser(email, hashedPassword) {
@@ -27,7 +27,4 @@ function findByEmail(email) {
   });
 }
 
-module.exports = {
-  createUser,
-  findByEmail,
-};
+export { createUser, findByEmail };
