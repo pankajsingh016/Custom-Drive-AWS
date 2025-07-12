@@ -1,0 +1,1 @@
+export { verifyTokenHeader as verifyToken } from "../utils/jwt.js";
