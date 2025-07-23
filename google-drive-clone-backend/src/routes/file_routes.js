@@ -7,5 +7,6 @@ const { verifyToken } = require('../middlewares/auth');
 router.post('/upload', verifyToken, upload.single('file'), fileController.uploadFile);
 router.get('/', verifyToken, fileController.getAllFiles);
 router.get('/presigned/:id', verifyToken, fileController.getFilePresignedUrl);
+router.delete('/:id',verifyToken,fileController.deleteFile);
 
 module.exports = router;

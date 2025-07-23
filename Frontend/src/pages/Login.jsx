@@ -8,7 +8,7 @@ import Logo from "../components/Logo";
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login} = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -18,17 +18,15 @@ function Login() {
 
     try {
       const res = await loginUser({ email, password });
-      
+
       login(res.data.user);
       console.log(res.data);
       console.log("done");
 
-      if(res.data.success)
-      {
-        const {token, user} = res.data.data;
+      if (res.data.success) {
+        const { token, user } = res.data.data;
         navigate("/files");
-      } 
-
+      }
     } catch (err) {
       console.log("Login Failed:", err);
       alert("Invalid Credentials. Try again.");

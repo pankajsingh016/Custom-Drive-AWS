@@ -27,3 +27,12 @@ exports.getFilePresignedUrl = async (req, res) => {
     errorResponse(res, err.message);
   }
 };
+
+exports.deleteFile = async (req, res) => {
+  try {
+    const result = await fileService.deleteFile(req.params.id, req.user.id);
+    successResponse(res, result, 'File deleted successfully');
+  } catch (err) {
+    errorResponse(res, err.message);
+  }
+};
