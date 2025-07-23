@@ -19,5 +19,5 @@ exports.login = async (email, password) => {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
 
-  return { token };
+  return { user, token };
 };

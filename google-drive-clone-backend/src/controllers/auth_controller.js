@@ -14,8 +14,14 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const { token } = await authService.login(email, password);
-    successResponse(res, { token }, 'Login successful');
+    const { user, token } = await authService.login(email, password);
+    res.cookie("token",token,{
+      httpOnly:true,
+      secure:false,
+      sameSite:"Lax",
+      maxAge:7*24*60*60*1000,
+    });
+    successResponse(res, { user, token }, 'Login successful');
   } catch (err) {
     errorResponse(res, err.message);
   }

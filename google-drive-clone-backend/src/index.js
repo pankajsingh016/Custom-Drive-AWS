@@ -1,9 +1,17 @@
+const cors = require("cors");
+const cookieParser = require('cookie-parser');
 const express = require('express');
 require('dotenv').config();
 const app = express();
 
 const authRoutes = require('./routes/auth_routes');
 const fileRoutes = require('./routes/file_routes');
+
+app.use(cors({
+    origin:"http://localhost:5173",
+    credentials:true
+}));
+app.use(cookieParser());
 
 app.use(express.json());
 app.use('/api/auth', authRoutes);
