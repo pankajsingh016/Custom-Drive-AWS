@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { uploadFile } from "../services/api";
+import { uploadFile, uploadFolder } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 function UploadModal({ type, onClose }) {
@@ -22,7 +22,7 @@ function UploadModal({ type, onClose }) {
 
     const formData = new FormData();
     if (type === "folder") {
-      file.forEach((f) => formData.append("files", f));
+      file.forEach((f) => formData.append("files", f, f.webkitRelativePath));
     } else {
       formData.append("file", file);
     }
@@ -30,9 +30,20 @@ function UploadModal({ type, onClose }) {
     try {
       setUploading(true);
       setMessage("");
-      await uploadFile(formData);
+      if (type === "file") {
+        console.log('request for file gone');
+        await uploadFile(formData);
+      }
+
+      if (type === "folder") {
+        console.log('request for folder gone');
+        await uploadFolder(formData);
+      }
+
       setMessage("✅ Upload successful!");
+
       setTimeout(onClose, 1000);
+      
       navigate("/files");
       // brief success delay
     } catch (err) {

@@ -1,0 +1,29 @@
+Google Drive Clone Project
+----------------------------
+Features
+basic (Needed at least)
+1. Login/Logout
+2. List all files/folder
+3. Upload file/folder
+4. Download the file/folder
+5. Delete the file/folder
+
+Optional
+6. Move a file or folder to new location
+7. Share a file or folder
+
+
+--------------
+Current Issues
+1. Uploading Folder to AWS with its sub-files and folders
+2. Displaying Folder in Frontend
+3. Option while clicking file/folder in frontend to (download, delete) in folder/files
+4. register user not tested
+5. get a signed url for downloading and sharing purpose 
+
+-------------------------
+Things done today
+1. Created the frontend only to download and list files
+2. Added the functionality of Upload folders and subfolders
+3. Changed the schema a lot.
+
