@@ -12,13 +12,33 @@ model User {
   email    String   @unique
   password String
   files    File[]
+  folders  Folder[] // one user has many folders
+}
+
+model Folder {
+  id        String   @id @default(uuid())
+  name      String
+  path      String   // can still be kept for debugging or search indexing
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  files     File[]   // one folder has many files
+
+  // 👇 Self-relation for nested structure
+  parentId   String?    // nullable for root folders
+  parent     Folder?    @relation("FolderToFolder", fields: [parentId], references: [id])
+  children   Folder[]   @relation("FolderToFolder")
+
+  createdAt DateTime @default(now())
 }
 
 model File {
-  id        String   @id @default(uuid())
-  filename  String
-  key       String
+  id         String   @id @default(uuid())
+  filename   String
+  key        String
   uploadedAt DateTime @default(now())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  userId     String
+  type       String   @default("file")
+  user       User     @relation(fields: [userId], references: [id])
+  folderId   String? // optional (root files won't have folder)
+  folder     Folder?  @relation(fields: [folderId], references: [id])
 }

@@ -4,9 +4,19 @@ const fileController = require('../controllers/file_controller');
 const upload = require('../middlewares/upload');
 const { verifyToken } = require('../middlewares/auth');
 
-router.post('/upload', verifyToken, upload.single('file'), fileController.uploadFile);
+// Upload a single file to a specific folder (or root if none)
+router.post('/file', verifyToken, upload.single('file'), fileController.uploadFile);
+
+// Upload multiple files with folder structure (e.g., for folder uploads)
+router.post('/folder', verifyToken, upload.array('files'), fileController.uploadFolder);
+
+// Get all files & folders for the logged-in user, optionally within a folder
 router.get('/', verifyToken, fileController.getAllFiles);
-router.get('/presigned/:id', verifyToken, fileController.getFilePresignedUrl);
-router.delete('/:id',verifyToken,fileController.deleteFile);
+
+// Generate a pre-signed URL for a file (download or view)
+router.get('/presigned/:fileId', verifyToken, fileController.getFilePresignedUrl);
+
+// Delete a file or folder by ID (recursive for folders)
+router.delete('/:type/:id', verifyToken, fileController.deleteFile);
 
 module.exports = router;
