@@ -24,6 +24,11 @@ Current Issues
 -------------------------
 Things done today
 1. Created the frontend only to download and list files
-2. Added the functionality of Upload folders and subfolders
+2. Added the functionality of Upload folders and subfolders but not tested it(Before testing make sure folder should be visible in the frontend) 
 3. Changed the schema a lot.
+4. The upload file functionality has been solved we have to solve the upload and refresh on purpose functionality here to update the state automatically.
 
+
+upload solved files
+download solved files
+delete solved files

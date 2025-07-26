@@ -6,6 +6,7 @@ const app = express();
 
 const authRoutes = require('./routes/auth_routes');
 const fileRoutes = require('./routes/file_routes');
+const folderRoutes = require('./routes/folder_routes');
 
 app.use(cors({
     origin:"http://localhost:5173",
@@ -16,6 +17,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/folders',folderRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));

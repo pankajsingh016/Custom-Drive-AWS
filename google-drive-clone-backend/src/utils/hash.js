@@ -1,5 +1,5 @@
-const bcrypt = require('bcryptjs');
+import { hash, compare } from 'bcryptjs';
 
-exports.hashPassword = async (plain) => await bcrypt.hash(plain, 10);
+export async function hashPassword(plain) { return await hash(plain, 10); }
 
-exports.comparePasswords = async (plain, hashed) => await bcrypt.compare(plain, hashed);
+export async function comparePasswords(plain, hashed) { return await compare(plain, hashed); }

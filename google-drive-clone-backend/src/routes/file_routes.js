@@ -14,9 +14,11 @@ router.post('/folder', verifyToken, upload.array('files'), fileController.upload
 router.get('/', verifyToken, fileController.getAllFiles);
 
 // Generate a pre-signed URL for a file (download or view)
-router.get('/presigned/:fileId', verifyToken, fileController.getFilePresignedUrl);
+router.get('/download/:fileId', verifyToken, fileController.downloadFile);
 
 // Delete a file or folder by ID (recursive for folders)
 router.delete('/:type/:id', verifyToken, fileController.deleteFile);
+
+router.get('/view/:fileId',verifyToken, fileController.viewFile);
 
 module.exports = router;

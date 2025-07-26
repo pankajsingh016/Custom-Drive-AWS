@@ -16,19 +16,16 @@ model User {
 }
 
 model Folder {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
-  path      String   // can still be kept for debugging or search indexing
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  files     File[]   // one folder has many files
-
-  // 👇 Self-relation for nested structure
-  parentId   String?    // nullable for root folders
-  parent     Folder?    @relation("FolderToFolder", fields: [parentId], references: [id])
-  children   Folder[]   @relation("FolderToFolder")
-
-  createdAt DateTime @default(now())
+  user      User      @relation(fields: [userId], references: [id])
+  parentId  String?   // Optional: For nested folders, null for root folders
+  parent    Folder?   @relation("SubFolders", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[]  @relation("SubFolders") // Relation for nested folders
+  files     File[]    // Files within this folder
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model File {
@@ -38,6 +35,7 @@ model File {
   uploadedAt DateTime @default(now())
   userId     String
   type       String   @default("file")
+  mimetype   String?
   user       User     @relation(fields: [userId], references: [id])
   folderId   String? // optional (root files won't have folder)
   folder     Folder?  @relation(fields: [folderId], references: [id])

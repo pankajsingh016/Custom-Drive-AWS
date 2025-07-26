@@ -11,7 +11,10 @@ const upload = multer({
       cb(null, { fieldName: file.fieldname });
     },
     key: (req, file, cb) => {
-      cb(null, `uploads/${Date.now()}_${file.originalname}`);
+      // cb(null, `uploads/${Date.now()}_${file.originalname}`);
+       const userId = req.user.id;
+      // This is the format that will be used in S3
+      cb(null, `uploads/${userId}/${Date.now()}-${file.originalname}`);
     },
   }),
 });

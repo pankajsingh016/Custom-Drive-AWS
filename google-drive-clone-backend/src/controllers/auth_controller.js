@@ -26,3 +26,32 @@ exports.login = async (req, res) => {
     errorResponse(res, err.message);
   }
 };
+
+exports.logout = async (req, res) => {
+
+  try {
+    res.clearCookie("token",{ // Replace 'token' with your actual cookie name
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax', // Or 'Strict', depending on your needs
+        path: '/', // The path must match the path the cookie was set with
+    });
+
+    // 3. Send a success response
+    successResponse(res, null, "Logged out successfully.");
+
+  } catch (error) {
+    console.error("Logout error:", error);
+    errorResponse(res, "An error occurred during logout.", 500);
+  }
+};
+
+exports.getMe = (req, res) => {
+  // If the 'auth' middleware successfully verified the user, req.user will be populated
+  if (req.user) {
+    successResponse(res, { user: req.user }, "User session active.");
+  } else {
+    // This case should ideally not be hit if auth middleware always redirects/errors on failure
+    errorResponse(res, "No active session.", 401);
+  }
+};

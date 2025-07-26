@@ -1,19 +1,13 @@
 // src/components/FolderCard.jsx
 import React from 'react';
 import { Folder } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
-function FolderCard({ folder }) {
-  const navigate = useNavigate();
-
-  const openFolder = () => {
-    navigate(`/dashboard/${folder.id}`);
-  };
+function FolderCard({ folder,onOpen }) {
 
   return (
     <div
       className="p-4 border rounded-xl shadow-md bg-yellow-100 cursor-pointer hover:bg-yellow-200"
-      onClick={openFolder}
+      onClick={()=>onOpen(folder.id)}
     >
       <div className="flex items-center space-x-3">
         <Folder className="text-yellow-600" />

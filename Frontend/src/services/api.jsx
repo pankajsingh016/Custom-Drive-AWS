@@ -1,7 +1,7 @@
 // File: src/services/api.js
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_BASE;
+export const API_BASE = import.meta.env.VITE_API_BASE;
 
 // Auth
 export const loginUser = (data) =>
@@ -23,13 +23,6 @@ export const uploadFile = (formData) =>
     headers: { "Content-Type": "multipart/form-data" },
   });
 
-// Folder Upload
-export const uploadFolder = (formData) =>
-  axios.post(`${API_BASE}/files/folder`, formData, {
-    withCredentials: true,
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-
 // Delete File or Folder
 export const deleteItem = (type, id) =>
   axios.delete(`${API_BASE}/files/${type}/${id}`, {
@@ -37,8 +30,26 @@ export const deleteItem = (type, id) =>
   });
 
 // Get Presigned URL
-export const getPresignedUrl = (fileId) =>
-  axios.get(`${API_BASE}/files/presigned/${fileId}`, {
+export const getDownloadUrl = (fileId) =>
+  axios.get(`${API_BASE}/files/download/${fileId}`, {
     withCredentials: true,
   });
 
+export const getViewFile = (fileId) =>
+  axios.get(`${API_BASE}/files/view/${fileId}`, {
+    withCredentials: true,
+  });
+
+// Folder Upload
+export const uploadFolder = (formData) =>
+  axios.post(`${API_BASE}/files/folder`, formData, {
+    withCredentials: true,
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+export const createFolder = (name, parentId = null) =>
+  axios.post(
+    `${API_BASE}/folders/create`,
+    { name, parentId },
+    { withCredentials: true }
+  );
