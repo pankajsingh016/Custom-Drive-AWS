@@ -32,3 +32,7 @@ Things done today
 upload solved files
 download solved files
 delete solved files
+
+solved upload folder and sub-folders and file issue
+solved the issue of deleting the folder and opening the folder
+
