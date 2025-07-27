@@ -4,6 +4,9 @@ const { GetObjectCommand, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { deleteFromS3, uploadFileToS3 } = require("../utils/s3_utils");
 const s3 = require("../config/aws");
 const s3Utils = require('../utils/s3_utils');
+const folderService = require('./folder_services');
+
+
 
 //upload a single file
 exports.saveFile = async (file, userId, folderId = null) => {
@@ -31,68 +34,6 @@ exports.saveFile = async (file, userId, folderId = null) => {
     console.error("Error uploading file to S3:", error);
     throw new Error("File upload failed");
   }
-};
-
-// Upload folder with nested structure
-exports.uploadFolderFiles = async (
-  userId,
-  uploadedFiles,
-  parentFolderId = null
-) => {
-  const uploadResults = [];
-
-  // Helper: create nested folders
-  const folderMap = {}; // path -> folder ID
-
-  for (const file of uploadedFiles) {
-    const fullPath = file.originalname; // e.g., 'FolderA/SubA/file.txt'
-    const pathParts = fullPath.split("/");
-    const fileName = pathParts.pop();
-
-    let currentParentId = parentFolderId;
-    let currentPath = "";
-
-    for (const part of pathParts) {
-      currentPath = currentPath ? `${currentPath}/${part}` : part;
-
-      if (!folderMap[currentPath]) {
-        let existing = await prisma.folder.findFirst({
-          where: { userId, name: part, parent: { id: currentParentId } },
-        });
-
-        if (!existing) {
-          existing = await prisma.folder.create({
-            data: { name: part, userId, parentId: currentParentId },
-          });
-        }
-
-        folderMap[currentPath] = existing.id;
-        currentParentId = existing.id;
-      } else {
-        currentParentId = folderMap[currentPath];
-      }
-    }
-
-    // Upload the file
-    const s3Key = `${userId}/${fullPath}`;
-    const s3Response = await uploadFileToS3(file.buffer, s3Key, file.mimetype);
-
-    const dbEntry = await prisma.file.create({
-      data: {
-        filename: fileName,
-        key: s3Key,
-        url: s3Response.Location,
-        uploadedAt: new Date(),
-        userId,
-        folderId: currentParentId,
-        type: "file",
-      },
-    });
-
-    uploadResults.push(dbEntry);
-  }
-
-  return uploadResults;
 };
 
 // Fetch files and folders from a specific folder
@@ -124,106 +65,58 @@ const safeDeleteFromS3 = async (key) => {
     }
 };
 
-exports.deleteFile = async (itemId, userId, type) => {
-    // Wrap the entire operation in a Prisma transaction
-    return prisma.$transaction(async (tx) => {
-        if (type === "folder") {
-            const folder = await tx.folder.findUnique({ where: { id: itemId } });
-            if (!folder) {
-                throw new Error("Folder not found");
-            }
-            if (folder.userId !== userId) {
-                throw new Error("Unauthorized: Cannot delete folder belonging to another user");
-            }
-
-            // Recursively delete subfolders
-            const subFolders = await tx.folder.findMany({
-                where: { userId, parentId: itemId },
-            });
-            for (const subFolder of subFolders) {
-                // IMPORTANT: Pass 'tx' to the recursive call if you want it to be part of the same transaction
-                // This means you might need to modify deleteItem to accept an optional 'tx' parameter
-                // For simplicity here, we'll assume deleteItem always starts a new transaction if tx is not passed,
-                // or if it's designed to be called outside a transaction context.
-                // A better approach for deep recursion within one transaction: have an internal helper.
-                 await exports.deleteItem(subFolder.id, userId, "folder"); // Calling the exported function
-            }
-
-            // Delete files inside the folder
-            const nestedFiles = await tx.file.findMany({
-                where: { userId, folderId: itemId },
-            });
-            for (const nestedFile of nestedFiles) {
-                await safeDeleteFromS3(nestedFile.key); // Delete from S3 first
-                await tx.file.delete({ where: { id: nestedFile.id } }); // Then delete Prisma record
-            }
-
-            // Finally, delete the folder itself
-            await tx.folder.delete({ where: { id: itemId } });
-
-        } else if (type === "file") {
-            const file = await tx.file.findUnique({ where: { id: itemId } });
-            if (!file) {
-                throw new Error("File not found");
-            }
-            if (file.userId !== userId) {
-                throw new Error("Unauthorized: Cannot delete file belonging to another user");
-            }
-
-            await safeDeleteFromS3(file.key); // Delete from S3 first
-            await tx.file.delete({ where: { id: itemId } }); // Then delete Prisma record
-
-        } else {
-            throw new Error("Invalid item type specified for deletion.");
+async function deleteItemRecursiveInternal(itemId, userId, type, tx) {
+    if (type === "folder") {
+        const folder = await tx.folder.findUnique({ where: { id: itemId } });
+        if (!folder) {
+            throw new Error("Folder not found");
+        }
+        if (folder.userId !== userId) {
+            throw new Error("Unauthorized: Cannot delete folder belonging to another user");
         }
 
+        const subFolders = await tx.folder.findMany({
+            where: { userId, parentId: itemId },
+        });
+        for (const subFolder of subFolders) {
+            // Recursive call to the internal helper, passing the transaction 'tx'
+            await deleteItemRecursiveInternal(subFolder.id, userId, "folder", tx);
+        }
+
+        const nestedFiles = await tx.file.findMany({
+            where: { userId, folderId: itemId },
+        });
+        for (const nestedFile of nestedFiles) {
+            await safeDeleteFromS3(nestedFile.key);
+            await tx.file.delete({ where: { id: nestedFile.id } });
+        }
+
+        await tx.folder.delete({ where: { id: itemId } });
+
+    } else if (type === "file") {
+        const file = await tx.file.findUnique({ where: { id: itemId } });
+        if (!file) {
+            throw new Error("File not found");
+        }
+        if (file.userId !== userId) {
+            throw new Error("Unauthorized: Cannot delete file belonging to another user");
+        }
+
+        await safeDeleteFromS3(file.key);
+        await tx.file.delete({ where: { id: itemId } });
+
+    } else {
+        throw new Error("Invalid item type specified for deletion.");
+    }
+}
+
+// Exported function, responsible for starting the transaction and calling the internal helper
+exports.deleteItem = async (itemId, userId, type) => { // Renamed from deleteFile if this is the public API
+    return prisma.$transaction(async (tx) => {
+        await deleteItemRecursiveInternal(itemId, userId, type, tx); // Call the internal helper with 'tx'
         return { message: "Item deleted successfully." };
-    }); // End of prisma.$transaction
-};
-
-
-/*
-
-// Delete file or folder
-exports.deleteFile = async (fileId, userId, type) => {
-  const file = await prisma.file.findUnique({ where: { id: fileId } });
-  if (!file) throw new Error("File not found");
-  if (file.userId !== userId) throw new Error("Unauthorized");
-
-  if (type === "folder") {
-    // Delete all subfolders
-    const subFolders = await prisma.folder.findMany({
-      where: { userId, parentId: fileId },
     });
-
-    for (const folder of subFolders) {
-      await deleteFile(folder.id, userId, "folder");
-    }
-
-    // Delete files inside the folder
-    const nestedFiles = await prisma.file.findMany({
-      where: { userId, folderId: fileId },
-    });
-
-    for (const nestedFile of nestedFiles) {
-      if (nestedFile.key) {
-        await deleteFromS3(nestedFile.key);
-      }
-      await prisma.file.delete({ where: { id: nestedFile.id } });
-    }
-
-    await prisma.folder.delete({ where: { id: fileId } });
-  } else {
-    if (file.key) await deleteFromS3(file.key);
-    await prisma.file.delete({ where: { id: fileId } });
-  }
-
-  return { message: "File or folder deleted successfully." };
 };
-*/
-
-
-// presigned URL logic for file services
 
 exports.download = async(fileId, userId, )=>{
 
@@ -295,3 +188,75 @@ exports.view = async(fileId, userId) =>{
     throw new Error("View file failed")
   }
 }
+
+
+// folder things
+exports.processFolderUpload = async (files, userId, currentParentFolderId = null) => {
+  const processedFiles = [];
+
+  for (const file of files) {
+    const { originalname, mimetype, buffer, webkitRelativePath } = file;
+
+    // webkitRelativePath will be like 'myFolder/subFolder/file.txt'
+    const pathParts = webkitRelativePath.split('/');
+    const fileName = pathParts.pop(); // The actual file name
+    const folderPath = pathParts.join('/'); // 'myFolder/subFolder' or '' if file is in root of uploaded folder
+
+    let parentFolderIdForFile = currentParentFolderId; // Start with the folder where upload was initiated
+
+    // Process folder path parts to create nested folders in DB
+    if (folderPath) {
+      const folderNames = folderPath.split('/');
+      let currentDbParentId = currentParentFolderId;
+
+      for (const folderName of folderNames) {
+        // Check if this folder already exists under the currentDbParentId for this user
+        let existingFolder = await prisma.folder.findFirst({
+          where: {
+            name: folderName,
+            userId: userId,
+            parentId: currentDbParentId,
+          },
+        });
+
+        if (!existingFolder) {
+          // If not, create it
+          existingFolder = await folderService.createFolder(folderName, userId, currentDbParentId);
+          console.log(`Created new sub-folder in DB: ${existingFolder.name} (ID: ${existingFolder.id})`);
+        }
+        currentDbParentId = existingFolder.id; // Set the newly created/found folder as the parent for the next iteration
+      }
+      parentFolderIdForFile = currentDbParentId; // The final parent for the current file
+    }
+
+    // Construct S3 Key: uploads/userId/folderId_of_actual_parent_in_DB/filename.ext
+    // Or: uploads/userId/folderId_of_actual_parent_in_DB/subfolder1/subfolder2/filename.ext
+    // We use the DB folder ID to ensure a unique and consistent path in S3
+    const s3Key = `uploads/${userId}/${parentFolderIdForFile || 'root'}/${fileName}`; // 'root' for clarity if no parent
+
+    try {
+      // Upload the file to S3
+      const s3FileUrl = await s3Utils.uploadFileToS3(buffer, s3Key, mimetype);
+      console.log(`Uploaded file to S3: ${s3FileUrl}`);
+
+      // Save file metadata to database
+      const savedFile = await prisma.file.create({
+        data: {
+          filename: fileName,
+          key: s3Key,
+          type: "file",
+          mimetype: mimetype,
+          userId: userId,
+          uploadedAt: new Date(),
+          folderId: parentFolderIdForFile, // Link to the correct parent folder in DB
+        },
+      });
+      processedFiles.push(savedFile);
+    } catch (uploadError) {
+      console.error(`Failed to upload or save metadata for file ${originalname} (path: ${webkitRelativePath}):`, uploadError);
+      // Decide if you want to rethrow or just log and continue for other files
+      // For a folder upload, it's often better to log and continue, then report overall success/failure.
+    }
+  }
+  return processedFiles;
+};

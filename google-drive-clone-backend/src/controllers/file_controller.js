@@ -1,37 +1,81 @@
 // === file_controller.js ===
 const fileService = require("../services/file_services");
+
+const folderService = require("../services/folder_services");
+const { uploadSingleFile, uploadFolderContents } = require('../middlewares/upload');
+
 const { successResponse, errorResponse } = require("../utils/response");
 
 exports.uploadFile = async (req, res) => {
+  // Multer middleware will be applied in the route definition
   try {
     const userId = req.user.id;
-    const folderId = req.body.folderId || null;
+    const folderId = req.body.folderId || null; // folderId comes from form data
+
+    if (!req.file) {
+      return errorResponse(res, "No file provided for upload.", 400);
+    }
+
+    // fileService.saveFile will now use req.file.key provided by multer-s3
     const fileMeta = await fileService.saveFile(req.file, userId, folderId);
-    successResponse(res, fileMeta, "File uploaded");
+    successResponse(res, fileMeta, "File uploaded successfully.");
   } catch (err) {
-    console.log('something went wrong.');
-    console.error(err);
-    errorResponse(res, err.message);
+    console.error("Error in uploadFile controller:", err);
+    errorResponse(res, err.message || "Failed to upload file.");
   }
 };
 
-exports.uploadFolder = async (req, res) => {
+
+exports.uploadFolderContents = async (req, res) => {
   try {
     const userId = req.user.id;
-    const uploadedFiles = req.files;
-    const folderId = req.body.folderId || null;
+    const currentParentFolderId = req.body.currentFolderId || null;
 
-    const uploadResults = await fileService.uploadFolderFiles(
+    if (!req.files || req.files.length === 0) {
+      return errorResponse(res, "No files provided for folder upload.", 400);
+    }
+
+    // --- NEW LOGIC: Map req.files to include webkitRelativePath from req.body ---
+    const filesToProcess = req.files.map((file, index) => {
+        const relativePathKey = `relativePath_${index}`; // Matches frontend key
+        const webkitRelativePath = req.body[relativePathKey]; // Retrieve from req.body
+
+        if (!webkitRelativePath) {
+            // This should ideally not happen if frontend is correct
+            console.warn(`Warning: ${relativePathKey} missing for file ${file.originalname}.`);
+            // Fallback: If for some reason the path is missing, use original name as a last resort
+            // or handle as an error, depending on desired robustness.
+            // For now, let's make sure it's not undefined for the split operation.
+        }
+
+        return {
+            ...file, // Keep existing Multer file properties
+            webkitRelativePath: webkitRelativePath || file.originalname // Add the correct path here
+        };
+    });
+    // --- END NEW LOGIC ---
+
+    console.log(`Received ${filesToProcess.length} files for folder upload.`);
+    // Add improved logging to confirm webkitRelativePath is now present
+    filesToProcess.forEach((file, index) => {
+        console.log(`Multer File ${index}: Name=${file.originalname}, webkitRelativePath=${file.webkitRelativePath}`);
+    });
+
+
+    const processedFiles = await fileService.processFolderUpload(
+      filesToProcess, // Pass the modified array to the service
       userId,
-      uploadedFiles,
-      folderId
+      currentParentFolderId
     );
 
-    res.status(200).json({ message: "Folder uploaded", files: uploadResults });
+    successResponse(res, processedFiles, "Folder contents uploaded successfully!");
   } catch (err) {
-    errorResponse(res, err.message);
+    console.error("Error in uploadFolderContents controller:", err);
+    errorResponse(res, err.message || "Failed to upload folder contents.");
   }
 };
+
+
 
 exports.getAllFiles = async (req, res) => {
   try {
@@ -50,13 +94,16 @@ exports.getAllFiles = async (req, res) => {
   }
 };
 
-exports.deleteFile = async (req,res)=>{
+exports.deleteFileFolder = async (req,res)=>{
+
       try{
         const userId = req.user.id;
-        const fileId = req.params.id;
-        const fileType = req.params.type;
+        const fileId = req.params.itemId;
+        const fileType = req.params.itemType;
 
-        const deletestatus = await fileService.deleteFile(fileId, userId, fileType);
+        console.log(userId, fileId, fileType);
+
+        const deletestatus = await fileService.deleteItem(fileId, userId, fileType);
 
         successResponse(res,deletestatus, "File Deleted Successfully");
 
