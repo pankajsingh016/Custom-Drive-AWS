@@ -18,15 +18,9 @@ function Login() {
 
     try {
       const res = await loginUser({ email, password });
-
-      login(res.data.user);
-      console.log(res.data);
-      console.log("done");
-
-      if (res.data.success) {
-        const { token, user } = res.data.data;
-        navigate("/files");
-      }
+      const { user } = res.data.data; // Destructure user from res.data.data
+      login(user); // Call AuthContext's login function
+      navigate("/files");
     } catch (err) {
       console.log("Login Failed:", err);
       alert("Invalid Credentials. Try again.");

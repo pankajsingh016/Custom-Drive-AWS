@@ -7,6 +7,9 @@ export const API_BASE = import.meta.env.VITE_API_BASE;
 export const loginUser = (data) =>
   axios.post(`${API_BASE}/auth/login`, data, { withCredentials: true });
 
+export const logoutUser = (data) =>
+  axios.post(`${API_BASE}/auth/logout`, data, { withCredentials: true });
+
 export const registerUser = (data) =>
   axios.post(`${API_BASE}/auth/register`, data);
 
@@ -24,8 +27,8 @@ export const uploadFile = (formData) =>
   });
 
 // Delete File or Folder
-export const deleteItem = (type, id) =>
-  axios.delete(`${API_BASE}/files/${type}/${id}`, {
+export const deleteItem = (itemType, itemId) =>
+  axios.delete(`${API_BASE}/files/${itemType}/${itemId}`, {
     withCredentials: true,
   });
 
@@ -53,3 +56,18 @@ export const createFolder = (name, parentId = null) =>
     { name, parentId },
     { withCredentials: true }
   );
+
+export const uploadFolderContents = (formData) =>
+  axios.post(`${API_BASE}/files/folder`, formData, {
+    // Matches the new backend route
+    withCredentials: true,
+    headers: { "Content-Type": "multipart/form-data" }, // Important for FormData
+    onUploadProgress: (progressEvent) => {
+      // Optional: for progress bar
+      const percentCompleted = Math.round(
+        (progressEvent.loaded * 100) / progressEvent.total
+      );
+      console.log(`Folder upload progress: ${percentCompleted}%`);
+      // You can return this progress or use a callback if needed in the UI
+    },
+  });

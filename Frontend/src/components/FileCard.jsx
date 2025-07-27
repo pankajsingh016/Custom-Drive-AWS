@@ -3,7 +3,7 @@ import React from "react";
 import { FileText, CloudDownload } from "lucide-react";
 import { deleteItem, getDownloadUrl, getViewFile } from "../services/api";
 
-function FileCard({ file,updateContent }) { 
+function FileCard({ file,updateContent, onDelete }) { 
   const handleDownload = async () => {
 
     try{
@@ -20,18 +20,9 @@ function FileCard({ file,updateContent }) {
   };
 
   const handleDelete = async ()=>{
-    if(!window.confirm(`Are you sure you want to delete "${file.filename}"?`)){
-      return;
-    }
-    try{
-      await deleteItem("file",file.id);
-      if(updateContent){
-        updateContent();
-      }
-    } catch(err){
-      console.log('Something went wrong ',err);
-      alert('failed to delete the file');
-    }
+   if(onDelete) {
+    onDelete();
+   }
   };
 
   const handleView = async ()=>{

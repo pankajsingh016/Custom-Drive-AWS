@@ -5,7 +5,7 @@ import Sidebar from "../components/SideBar";
 import Header from "../components/Header";
 import FileCard from "../components/FileCard";
 import FolderCard from "../components/FolderCard";
-import { fetchFiles } from "../services/api";
+import { deleteItem, fetchFiles } from "../services/api";
 
 
 function Dashboard() {
@@ -14,14 +14,15 @@ function Dashboard() {
 
   const [files, setFiles] = useState([]);
   const [folders, setFolders] = useState([]);
-  // currentFolderId will now primarily be derived from urlFolderId
-  // No longer need a separate currentFolderId state if it perfectly mirrors the URL param
-  // but we keep it for consistency with your existing loadData parameter
+  const [foldername, setFoldername] = useState("");
   const [currentFolderId, setCurrentFolderId] = useState(null); // Keep this state for loadData argument
 
   const [folderStack, setFolderStack] = useState([]); // Still useful for "Back" button logic
 
-  const loadData = async (fId = null) => { // Renamed parameter to fId to avoid confusion with component state
+  const [loading, setLoading] = useState(true); // Initialize to true as data loads on mount
+  const [error, setError] = useState(null);   // Initialize to null for no error
+
+  const loadData = async (fId = null) => {
     console.log("LOADDATA is called for folderId:", fId);
     try {
       const res = await fetchFiles(fId); // Pass the effective folder ID to the API call
@@ -43,6 +44,29 @@ function Dashboard() {
     }
   };
 
+
+   // Delete Item Handler
+  const handleDeleteItem = async (itemId, itemType) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this item?");
+    if (!confirmDelete) return;
+
+    setLoading(true); // Optional: show loading state during deletion
+    try {
+      await deleteItem(itemType,itemId); // Call your backend API to delete
+
+      // THIS IS THE KEY FIX: After successful deletion, reload the contents of the *current* folder
+      // We explicitly pass currentFolderId to ensure it reloads the current view.
+      await loadData(currentFolderId); // Pass the current folder ID to reload its content
+
+    } catch (err) {
+      console.error("Error deleting item:", err);
+      setError(err.response?.data?.message || "Failed to delete item.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   useEffect(() => {
     // Determine the effective folder ID from the URL.
     // urlFolderId will be undefined for /files, or the actual ID for /files/:folderId
@@ -51,14 +75,16 @@ function Dashboard() {
     loadData(effectiveFolderId); // Load data based on URL parameter
   }, [urlFolderId]); // Re-run effect when the URL folderId changes
 
-   const openFolder = (folderId) => {
+   const openFolder = (folderId,folderName) => {
     // ... (your existing folderStack logic)
+    setFoldername(folderName);
     navigate(`/files/${folderId}`); // <-- ENSURE THIS IS "/files/" NOT "/dashboard/"
   };
 
   const goBack = () => {
     const prevStack = [...folderStack];
     const parentId = prevStack.pop();
+    setFoldername("");
     setFolderStack(prevStack);
 
     if (parentId) {
@@ -74,7 +100,7 @@ function Dashboard() {
         <Header />
         <div className="p-4 flex justify-between items-center">
           <h2 className="text-xl font-semibold">
-            {currentFolderId ? `folder name` : 'Dashboard'}
+            {currentFolderId ? `${foldername}` : 'Dashboard'}
           </h2>
           {folderStack.length > 0 && ( // Show back button if there's history in the stack
             <button
@@ -95,8 +121,9 @@ function Dashboard() {
             <FolderCard
               key={folder.id}
               folder={folder}
-              onOpen={() => openFolder(folder.id)}
+              onOpen={() => openFolder(folder.id, folder.name)}
               updateContent={loadData}
+              onDelete={()=>handleDeleteItem(folder.id,'folder')}
             />
           ))}
           {files.map((file) => (
@@ -104,6 +131,7 @@ function Dashboard() {
               key={file.id}
               file={file}
               updateContent={loadData}
+              onDelete={()=>handleDeleteItem(file.id,'file')}
             />
           ))}
         </div>
