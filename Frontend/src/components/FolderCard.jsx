@@ -36,7 +36,7 @@ function FolderCard({ folder, onOpen, onDelete }) {
             onClick={handleDeleteClick}
             className="bg-red-400 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded-md"
           >
-            <Trash2 className="inline-block w-4 h-4 mr-1" /> Delete
+            <Trash2 className="inline-block w-4 h-4 mr-1" />
           </button>
         )}
         {/* ---------------------------------- */}

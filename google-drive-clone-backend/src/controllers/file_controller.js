@@ -82,12 +82,12 @@ exports.getAllFiles = async (req, res) => {
     const userId = req.user.id;
     const folderId = req.query.folderId || null;
 
-    const { files, folders } = await fileService.getAllFilesAndFolders(
+    const { files, folders,currentFolderName } = await fileService.getAllFilesAndFolders(
       userId,
       folderId
     );
 
-    res.status(200).json({ data: { files, folders } });
+    res.status(200).json({ data: { files, folders,currentFolderName } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to retrieve files and folders' });

@@ -27,6 +27,14 @@ function Login() {
     }
   };
 
+  const GoRegister = async (e)=>{
+    try{
+      navigate("/register");
+    } catch(err){
+      console.log("Register Route Failde",err);
+    }
+  }
+
   return (
     <div className="bg-gradient-to-br from-gray-800 to-zinc-700 min-h-screen flex items-center justify-center p-4">
       <form
@@ -58,9 +66,16 @@ function Login() {
 
         <button
           type="submit"
-          className="w-full bg-zinc-800 text-white py-3 rounded-lg font-semibold hover:bg-zinc-900 transition"
+          className="w-full hover:bg-blue-500 text-white py-3 rounded-lg font-semibold bg-zinc-900 transition cursor-pointer"
         >
           Login
+        </button>
+          <button
+          onClick={GoRegister}
+          type="button"
+          className="w-full hover:bg-blue-500 text-white py-3 rounded-lg font-semibold bg-zinc-900 transition cursor-pointer"
+        >
+          Register
         </button>
       </form>
     </div>
