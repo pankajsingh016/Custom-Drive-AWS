@@ -9,7 +9,7 @@ const fileRoutes = require('./routes/file_routes');
 const folderRoutes = require('./routes/folder_routes');
 
 app.use(cors({
-    origin:"http://localhost:5173",
+    origin:process.env.FRONTEND_URL,
     credentials:true
 }));
 app.use(cookieParser());

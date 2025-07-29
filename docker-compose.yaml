@@ -1,0 +1,61 @@
+# docker-compose.yml
+# This file orchestrates your multi-container application using Docker Compose.
+
+# The 'version' attribute is now obsolete and can be safely removed.
+# Docker Compose will use the latest specification by default.
+
+services:
+  backend:
+    build: ./backend # Specifies the path to the backend's Dockerfile
+    container_name: my_app_backend # Assigns a custom name to the backend container
+    ports:
+      - "3000:3000" # Maps host port 3000 to container port 3000
+
+    # For local development: Load environment variables from the ./.env file.
+    # Ensure this .env file is in your project root and is .gitignore'd and .dockerignore'd.
+    env_file:
+      - ./.env
+
+    # Environment variables explicitly defined here.
+    # Variables listed here will override those with the same name from env_file.
+    # Variables using ${VAR_NAME} syntax will first check the shell environment,
+    # then the .env file (if not set in shell).
+    environment:
+      NODE_ENV: production # Set Node.js environment to production inside the container
+      # FRONTEND_URL is kept here to demonstrate shell interpolation with a default.
+      # If FRONTEND_URL is set in your shell, that value is used.
+      # Otherwise, it defaults to http://localhost:80.
+      # Note: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, JWT_SECRET, DATABASE_URL
+      # are now implicitly loaded via 'env_file' from your ./.env file.
+      # If you were to explicitly define them here (e.g., AWS_REGION: ${AWS_REGION}),
+      # they would first check the shell, then the .env file.
+      # Removing them from this 'environment' block makes the .env file the primary
+      # source for these during local 'docker compose up' runs, making it cleaner.
+
+    # Mount a named volume to persist the SQLite database file.
+    # This ensures your data is not lost when the container is recreated.
+    # The path /app/prisma should match the directory inside your backend container
+    # where your SQLite database file (e.g., dev.db) is located.
+    volumes:
+      - sqlite_data:/app/prisma
+
+  frontend:
+    build: ./frontend # Specifies the path to the frontend's Dockerfile
+    container_name: my_app_frontend # Assigns a custom name to the frontend container
+    ports:
+      - "80:80" # Maps host port 80 to container port 80 (standard HTTP)
+
+    # Environment variables for the frontend.
+    # VITE_API_BASE needs to point to the backend service name within the Docker network.
+    environment:
+      VITE_API_BASE: http://backend:3000/api # Frontend talks to backend via Docker network name
+
+    # Defines a dependency: frontend will only start after the backend service has started.
+    # This helps ensure the backend API is available when the frontend tries to connect.
+    depends_on:
+      - backend
+
+# Define named volumes used by your services.
+# 'sqlite_data' will persist the SQLite database file on your Docker host.
+volumes:
+  sqlite_data:
