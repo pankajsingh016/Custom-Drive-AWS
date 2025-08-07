@@ -16,7 +16,7 @@
 8. Deployed in EC2 instance and with S3 Bucket
 
 
-** .env structure **
+**.env structure**
 ```
 # frontend
 VITE_API_BASE=http://localhost:3000/api
