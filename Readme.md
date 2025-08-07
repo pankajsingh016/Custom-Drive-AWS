@@ -43,3 +43,6 @@ FRONTEND_URL=******************
 
 <h4>Upload Features</h4>
 <img src="img3.png">
+
+<h4>AWS S3 Bucket Uploads</h4>
+<img src="img4.png">
